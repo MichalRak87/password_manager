@@ -23,6 +23,9 @@ class DTOCredentials:
 
 
 class CheckPassword:
+    """
+    Check password
+    """
     def __init__(self):
         self.pin = None
         pass_label = ttk.Label(check_password_tab, text="Be sure you wont forget your password!!!")

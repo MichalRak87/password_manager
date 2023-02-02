@@ -1,7 +1,9 @@
+"""
+Password manager for keeping you passwords secure
+"""
 import tkinter as tk
 import tkinter.messagebox
-import tkinter.ttk as ttk
-from dataclasses import dataclass
+from tkinter import ttk
 import sys
 
 
@@ -13,36 +15,35 @@ from install import install
 from crypto import Crypto
 
 
-@dataclass
-class DTOCredentials:
-    """
-    DTO for credentials
-    """
-    username: str
-    password: str
-
-
 class CheckPassword:
     """
     Check password
     """
     def __init__(self):
+        """
+        Initial CheckPassword class
+        """
         self.pin = None
         pass_label = ttk.Label(check_password_tab, text="Be sure you wont forget your password!!!")
         pass_label.configure(font=("arial", 12))
         self.pass_entry = ttk.Entry(check_password_tab, show="*")
         pass_button = ttk.Button(check_password_tab, text="Submit")
-        pass_button.bind("<Button-1>", self.pass_on_click)
-        smaall_label = ttk.Label(check_password_tab, text="Please enter your password:")
-        smaall_label.configure(font=("arial", 7))
+        pass_button.bind("<Button-1>", self._pass_on_click)
+        small_label = ttk.Label(check_password_tab, text="Please enter your password:")
+        small_label.configure(font=("arial", 7))
         pass_label.pack(padx=5, pady=5)
-        smaall_label.pack()
+        small_label.pack()
         self.pass_entry.pack(padx=5, pady=5)
         pass_button.pack(padx=5, pady=5)
         self.pass_entry.focus_set()
-        self.pass_entry.bind("<Return>", self.pass_on_click)
+        self.pass_entry.bind("<Return>", self._pass_on_click)
 
-    def pass_on_click(self, event):
+    def _pass_on_click(self, event):
+        """
+        Check password on click
+        :param event: default event parameter needed
+        :return: None
+        """
         if self.pass_entry.get():
             tab_system.tab(1, state="normal")
             tab_system.tab(2, state="normal")
@@ -53,16 +54,25 @@ class CheckPassword:
 
 
 class AddPassword:
+    """
+    Add password
+    """
     def __init__(
         self,
-        db,
+        database,
         _index,
         tab_sys,
     ):
+        """
+        Initial AddPassword class
+        :param database: sqlalchemy database connection
+        :param _index: class inex
+        :param tab_sys: tkinter tab system
+        """
         self.crypto = None
         self.tab_sys = tab_sys
         self.index = _index
-        self.db = db
+        self.database = database
 
         portal_label = ttk.Label(add_credentials_tab, text="Portal: ")
         self.portal_entry = ttk.Entry(add_credentials_tab)
@@ -93,6 +103,12 @@ class AddPassword:
         button.bind("<Button-1>", lambda x: self.on_click("", check.pin))
 
     def on_click(self, event, user_password):
+        """
+        Add credentials on click
+        :param event: default event parameter needed
+        :param user_password: user password for authentication
+        :return: None
+        """
         if all(
             [
                 len(self.portal_entry.get()),
@@ -101,7 +117,7 @@ class AddPassword:
             ]
         ):
             self.crypto = Crypto(user_password)
-            with Session(self.db) as session:
+            with Session(self.database) as session:
                 portal = Portal(name=self.portal_entry.get())
                 credentials = Credentials(
                     login=self.login_entry.get(),
@@ -123,9 +139,16 @@ class AddPassword:
 
 
 class IndexView:
-    def __init__(self, db):
+    """
+    Index view
+    """
+    def __init__(self, database):
+        """
+        Intializes IndexView class
+        :param database: sqlalchemy database connection
+        """
         self.crypto = None
-        self.db = db
+        self.database = database
         self.tree = ttk.Treeview(
             index_tab,
             columns=("login", "password"),
@@ -156,6 +179,10 @@ class IndexView:
         self.tree.bind("<Delete>", self.delete_column)
 
     def configure_treeview(self):
+        """
+        Configures treeview method
+        :return: None
+        """
         self.tree.column("#1", anchor=tk.CENTER, stretch=tk.NO, width=200)
         self.tree.heading("#1", text="Portal")
         self.tree.column("#2", anchor=tk.CENTER, stretch=tk.NO, width=200)
@@ -163,20 +190,25 @@ class IndexView:
         self.tree.pack(expand=1, fill="both")
 
     def fill_treeview(self):
-        try:
-            with Session(self.db) as session:
-                for credential in session.query(Credentials).all():
-                    credential = DTOCredentials(credential.portal.name, credential.login)
-                    self.tree.insert("", "end", values=(credential.portal, credential.login))
-        except AttributeError:
-            pass
+        """
+        Fills treeview method
+        :return: None
+        """
+        with Session(self.database) as session:
+            for credential in session.query(Credentials).all():
+                self.tree.insert("", "end", values=(credential.portal.name, credential.login))
 
     def delete_column(self, event):
+        """
+        Deletes column from treeview
+        :param event: tkinter event
+        :return: None
+        """
         message = tkinter.messagebox.askquestion(title='Delete record', message='Are you sure?')
         if message == "yes":
             selected_column = self.tree.focus()
             selected_items = self.tree.item(selected_column, "values")
-            with Session(self.db) as session:
+            with Session(self.database) as session:
                 session.execute(delete(Portal).where(Portal.name == selected_items[0]))
                 session.execute(delete(Credentials).where(Credentials.login == selected_items[1]))
                 session.commit()
@@ -185,10 +217,16 @@ class IndexView:
             self.fill_treeview()
 
     def on_click(self, event, user_password):
+        """
+        On click method
+        :param event: default tkinter event parameter
+        :param user_password: user password for authentication
+        :return: None
+        """
         self.crypto = Crypto(user_password)
         selected_column = self.tree.focus()
         selected_items = self.tree.item(selected_column, "values")
-        with Session(self.db) as session:
+        with Session(self.database) as session:
             credential = (
                 session.query(Credentials)
                 .join(Portal)

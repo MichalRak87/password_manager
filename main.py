@@ -166,15 +166,17 @@ class IndexView:
             pass
 
     def delete_column(self, event):
-        selected_column = self.tree.focus()
-        selected_items = self.tree.item(selected_column, "values")
-        with Session(self.db) as session:
-            session.execute(delete(Portal).where(Portal.name == selected_items[0]))
-            session.execute(delete(Credentials).where(Credentials.login == selected_items[1]))
-            session.commit()
-        for item in self.tree.get_children():
-            self.tree.delete(item)
-        self.fill_treeview()
+        message = tkinter.messagebox.askquestion(title='Delete record', message='Are you sure?')
+        if message == "yes":
+            selected_column = self.tree.focus()
+            selected_items = self.tree.item(selected_column, "values")
+            with Session(self.db) as session:
+                session.execute(delete(Portal).where(Portal.name == selected_items[0]))
+                session.execute(delete(Credentials).where(Credentials.login == selected_items[1]))
+                session.commit()
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+            self.fill_treeview()
 
     def on_click(self, event, user_password):
         self.crypto = Crypto(user_password)
@@ -191,11 +193,11 @@ class IndexView:
                 decrypted = self.crypto.decrypt(credential.password)
                 root.clipboard_clear()
                 root.clipboard_append(decrypted)
-                message = tkinter.messagebox.showinfo(
+                tkinter.messagebox.showinfo(
                     title="Password", message="Password copied to clipboard"
                 )
             except cryptography.fernet.InvalidToken:
-                message = tkinter.messagebox.showwarning(title="Token", message="Token is invalid")
+                tkinter.messagebox.showwarning(title="Token", message="Token is invalid")
                 tab_system.tab(1, state="hidden")
                 tab_system.tab(2, state="hidden")
                 tab_system.tab(0, state="normal")

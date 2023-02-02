@@ -15,8 +15,11 @@ from crypto import Crypto
 
 @dataclass
 class DTOCredentials:
-    portal: str
-    login: str
+    """
+    DTO for credentials
+    """
+    username: str
+    password: str
 
 
 class CheckPassword:
